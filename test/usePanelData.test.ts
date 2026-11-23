@@ -103,7 +103,8 @@ const mockApiUrl =
   export const fetchInfo = (id, signal) => globalThis.__mockApiFetch("info", id, signal);
   export const fetchLivescore = (id, signal) => globalThis.__mockApiFetch("live", id, signal);
   export const fetchRatingState = (id, signal) => globalThis.__mockApiFetch("rating", id, signal);
-  export const postScoringUpdate = (id, signal, task) => globalThis.__mockApiPost(id, signal, task);
+  export const postScoringUpdate = (id, signal) => globalThis.__mockApiPost(id, signal, "match-header");
+  export const postAutoEvent = (id, signal) => globalThis.__mockApiPost(id, signal, "match-complete");
 `);
 
 registerHooks({
@@ -324,7 +325,7 @@ test("Reset occurs ONLY when matchId changes", async (t) => {
   assert.equal(harness.latest.loading, false, "loading is false when matchId is undefined");
 });
 
-test("Refresh till now posts once and reloads ratings for the selected match", async (t) => {
+test("Refresh till now posts match-complete once and reloads ratings for the selected match", async (t) => {
   const harness = createHarness(t);
   let postedMatchId: number | undefined;
   let postedTask: string | undefined;
@@ -348,7 +349,7 @@ test("Refresh till now posts once and reloads ratings for the selected match", a
   });
 
   assert.equal(postedMatchId, 151338);
-  assert.equal(postedTask, "postscore");
+  assert.equal(postedTask, "match-complete");
   assert.equal(posts, 1);
   assert.deepEqual((harness.latest.rating.data as { ratings: { players: Record<string, unknown> } }).ratings.players, { 7: { rating: 7 } });
   assert.equal(harness.latest.activeAction, null);

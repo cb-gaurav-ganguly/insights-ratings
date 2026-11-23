@@ -9,7 +9,7 @@ type SortKey = "order" | "rating";
 interface Props {
   info: Source<InfoResponse>;
   rating: Source<RatingStateResponse | null>;
-  activeAction: "postscore" | "match-header" | null;
+  activeAction: "match-complete" | "match-header" | null;
   actionError: string | undefined;
   onRefreshTillNow: () => Promise<void>;
   onSetupParAndQuality: () => Promise<void>;
@@ -235,7 +235,7 @@ export default function Squads({ info, rating, activeAction, actionError, onRefr
             {activeAction === "match-header" ? "Setting up…" : "Setup PAR and Quality"}
           </button>
           <button className="btn btn-sm" type="button" onClick={onRefreshTillNow} disabled={activeAction !== null}>
-            {activeAction === "postscore" ? "Refreshing…" : "Refresh till now"}
+            {activeAction === "match-complete" ? "Refreshing…" : "Refresh till now"}
           </button>
           <div className="segmented" role="group" aria-label="Sort players">
             <button
