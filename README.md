@@ -28,4 +28,4 @@ VITE_API_BASE=https://example.internal npm run build
 - If one endpoint fails, the panel keeps that endpoint's last good data, shows a warning, and keeps polling.
 - A `404` from the ratings endpoint means match-setup has not prepared PAR yet. The panel shows this as an empty state.
 - PAR rates are derived the same way as `matchperformance.DerivePAR` in insights-emerald.
-- **Batting quality** is shown when the ratings response includes `battingQuality` for a player. insights-emerald does not return it yet, so the column shows `—`.
+- **Batting quality** comes from the ratings response's `battingQualities` map. `—` means the player has no stored batting quality (their rating uses the batting-position fallback); hover for the reason.

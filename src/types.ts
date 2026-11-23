@@ -134,8 +134,6 @@ export interface PlayerRating {
   score: number | null;
   components: RatingComponents | null;
   updatedByEventId: string;
-  // Not returned by insights-emerald yet; shown when the API starts including it.
-  battingQuality?: number | null;
 }
 
 export interface RatingsSnapshot {
@@ -150,4 +148,6 @@ export interface RatingStateResponse {
   matchId: number;
   par: PARSnapshot | null;
   ratings: RatingsSnapshot | null;
+  // Player id → stored Batting Quality. Players without one are absent; null when MariaDB could not be read.
+  battingQualities?: Record<string, number> | null;
 }
