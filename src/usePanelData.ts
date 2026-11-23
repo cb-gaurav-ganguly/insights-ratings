@@ -104,37 +104,53 @@ export function usePanelData(matchId: number | undefined, paused: boolean): Pane
 
   useEffect(() => {
     if (matchId === undefined || paused) return;
-    const controller = new AbortController();
+    let controller: AbortController | undefined;
+    let poller: ReturnType<typeof createPoller> | undefined;
 
-    const poller = createPoller({
-      fetchData: async () => {
-        const epoch = ratingEpoch.current;
-        const [info, live, rating] = await Promise.allSettled([
-          fetchInfo(matchId, controller.signal),
-          fetchLivescore(matchId, controller.signal),
-          fetchRatingState(matchId, controller.signal),
-        ]);
-        if (controller.signal.aborted || activeMatchIdRef.current !== matchId) return;
-        setState((previous) => ({
-          info: settle(previous.info, info),
-          live: settle(previous.live, live),
-          rating: epoch === ratingEpoch.current ? settle(previous.rating, rating) : previous.rating,
-          lastUpdated: Date.now(),
-          loading: false,
-        }));
-      },
-      isHidden: () => document.hidden,
-      refreshMs: REFRESH_MS,
-    });
+    const stopPolling = () => {
+      controller?.abort();
+      poller?.stop();
+      controller = undefined;
+      poller = undefined;
+    };
 
-    poller.tick();
-    const onVisible = () => poller.onVisible();
-    document.addEventListener("visibilitychange", onVisible);
+    const startPolling = () => {
+      if (document.hidden || poller) return;
+      const currentController = new AbortController();
+      controller = currentController;
+      poller = createPoller({
+        fetchData: async () => {
+          const epoch = ratingEpoch.current;
+          const [info, live, rating] = await Promise.allSettled([
+            fetchInfo(matchId, currentController.signal),
+            fetchLivescore(matchId, currentController.signal),
+            fetchRatingState(matchId, currentController.signal),
+          ]);
+          if (currentController.signal.aborted || activeMatchIdRef.current !== matchId) return;
+          setState((previous) => ({
+            info: settle(previous.info, info),
+            live: settle(previous.live, live),
+            rating: epoch === ratingEpoch.current ? settle(previous.rating, rating) : previous.rating,
+            lastUpdated: Date.now(),
+            loading: false,
+          }));
+        },
+        isHidden: () => document.hidden,
+        refreshMs: REFRESH_MS,
+      });
+      void poller.tick();
+    };
+
+    const onVisibilityChange = () => {
+      if (document.hidden) stopPolling();
+      else startPolling();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    startPolling();
 
     return () => {
-      controller.abort();
-      poller.stop();
-      document.removeEventListener("visibilitychange", onVisible);
+      stopPolling();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [matchId, paused]);
 

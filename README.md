@@ -22,7 +22,7 @@ VITE_API_BASE=https://example.internal npm run build
 
 ## Behaviour
 
-- Polls start only after the previous refresh finishes, and pause while the tab is hidden. **Pause** stops polling.
+- Polls start only after the previous refresh finishes. Hiding the page cancels in-flight polls and stops the timer; returning starts them again immediately. **Pause** stops polling.
 - **Refresh till now** sends a `match-complete` event to `POST /b/insights/v1/autoevent` with `matchState: inprogress`, then reloads player ratings. The recalculation runs in the background; subsequent polls show its result.
 - **Setup PAR and Quality** sends a `match-header` update to `POST /b/matches/v1/scoring-updates` with `state: preview`, then reloads PAR and ratings data.
 - If one endpoint fails, the panel keeps that endpoint's last good data, shows a warning, and keeps polling.

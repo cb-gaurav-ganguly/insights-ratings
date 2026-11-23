@@ -65,6 +65,7 @@ const defaultHandler: FetchHandler = (id: number) => ({
 let currentHandler: FetchHandler = defaultHandler;
 
 let fetchDelayMs = 0;
+const fetchCalls: Array<{ endpoint: string; id: number; signal?: AbortSignal }> = [];
 let postHandler: (id: number, signal: AbortSignal, task: string) => Promise<void> = async () => {};
 
 (globalThis as unknown as { __mockApiPost: (id: number, signal: AbortSignal, task: string) => Promise<void> }).__mockApiPost =
@@ -72,6 +73,7 @@ let postHandler: (id: number, signal: AbortSignal, task: string) => Promise<void
 
 (globalThis as unknown as { __mockApiFetch: (endpoint: string, id: number, signal?: AbortSignal) => Promise<unknown> }).__mockApiFetch =
   async (endpoint: string, id: number, signal?: AbortSignal) => {
+    fetchCalls.push({ endpoint, id, signal });
     if (signal?.aborted) {
       throw new DOMException("This operation was aborted", "AbortError");
     }
@@ -164,6 +166,8 @@ function createHarness(t: TestContext) {
     await unmount();
     currentHandler = defaultHandler;
     fetchDelayMs = 0;
+    fetchCalls.length = 0;
+    mockDocument.hidden = false;
     postHandler = async () => {};
   });
 
@@ -323,6 +327,39 @@ test("Reset occurs ONLY when matchId changes", async (t) => {
   assert.equal(harness.latest.rating.data, undefined, "rating data reset to undefined");
   assert.equal(harness.latest.lastUpdated, undefined, "lastUpdated reset to undefined");
   assert.equal(harness.latest.loading, false, "loading is false when matchId is undefined");
+});
+
+test("Hiding the page cancels all three in-flight polls and returning restarts them", async (t) => {
+  fetchDelayMs = 80;
+  const harness = createHarness(t);
+  await harness.update({ matchId: 151338, paused: false });
+  assert.deepEqual(fetchCalls.map(({ endpoint }) => endpoint), ["info", "live", "rating"]);
+
+  mockDocument.hidden = true;
+  for (const listener of listeners.get("visibilitychange") ?? []) listener();
+  assert.ok(fetchCalls.every(({ signal }) => signal?.aborted), "all in-flight requests should be cancelled when hidden");
+  await harness.wait(100);
+  assert.equal(fetchCalls.length, 3, "no more requests should start while hidden");
+
+  mockDocument.hidden = false;
+  for (const listener of listeners.get("visibilitychange") ?? []) listener();
+  assert.deepEqual(fetchCalls.slice(3).map(({ endpoint }) => endpoint), ["info", "live", "rating"]);
+  await harness.wait(100);
+  assert.equal((harness.latest.info.data as { matchInfo: { id: number } }).matchInfo.id, 151338);
+});
+
+test("A page opened in the background waits until visible before polling", async (t) => {
+  mockDocument.hidden = true;
+  const harness = createHarness(t);
+  await harness.update({ matchId: 151338, paused: false });
+  assert.equal(fetchCalls.length, 0);
+
+  mockDocument.hidden = false;
+  await act(async () => {
+    for (const listener of listeners.get("visibilitychange") ?? []) listener();
+    await Promise.resolve();
+  });
+  assert.deepEqual(fetchCalls.map(({ endpoint }) => endpoint), ["info", "live", "rating"]);
 });
 
 test("Refresh till now posts match-complete once and reloads ratings for the selected match", async (t) => {

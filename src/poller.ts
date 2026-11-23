@@ -14,16 +14,13 @@ export function createPoller(options: PollerOptions) {
 
   const tick = async () => {
     if (inFlight || !active) return;
-    if (options.isHidden()) {
-      timer = setTimeout(tick, refreshMs);
-      return;
-    }
+    if (options.isHidden()) return;
     inFlight = true;
     try {
       await options.fetchData();
     } finally {
       inFlight = false;
-      if (active) {
+      if (active && !options.isHidden()) {
         timer = setTimeout(tick, refreshMs);
       }
     }
