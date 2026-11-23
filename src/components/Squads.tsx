@@ -113,9 +113,10 @@ function Components({ rating }: { rating?: PlayerRating }) {
   );
 }
 
-function TeamSquad({ team, players, changed, sort }: {
+function TeamSquad({ team, players, qualities, changed, sort }: {
   team: InfoTeam;
   players: Record<string, PlayerRating>;
+  qualities: Record<string, number> | null | undefined;
   changed: Record<string, number>;
   sort: SortKey;
 }) {
@@ -155,7 +156,14 @@ function TeamSquad({ team, players, changed, sort }: {
           </thead>
           <tbody>
             {rows.map((player) => (
-              <PlayerRow key={player.id} player={player} rating={players[String(player.id)]} flash={!!changed[String(player.id)]} />
+              <PlayerRow
+                key={player.id}
+                player={player}
+                rating={players[String(player.id)]}
+                quality={qualities?.[String(player.id)]}
+                qualityUnavailable={qualities === null}
+                flash={!!changed[String(player.id)]}
+              />
             ))}
           </tbody>
         </table>
@@ -164,7 +172,13 @@ function TeamSquad({ team, players, changed, sort }: {
   );
 }
 
-function PlayerRow({ player, rating, flash }: { player: InfoPlayer; rating?: PlayerRating; flash: boolean }) {
+function PlayerRow({ player, rating, quality, qualityUnavailable, flash }: {
+  player: InfoPlayer;
+  rating?: PlayerRating;
+  quality?: number;
+  qualityUnavailable: boolean;
+  flash: boolean;
+}) {
   return (
     <tr className={flash ? "flash" : undefined}>
       <td>
@@ -181,7 +195,16 @@ function PlayerRow({ player, rating, flash }: { player: InfoPlayer; rating?: Pla
       <td><RatingCell rating={rating} /></td>
       <td className="hide-sm"><Components rating={rating} /></td>
       <td className="num">
-        {typeof rating?.battingQuality === "number" ? rating.battingQuality.toFixed(3) : <span className="muted">—</span>}
+        {typeof quality === "number" ? (
+          quality.toFixed(3)
+        ) : (
+          <span
+            className="muted"
+            title={qualityUnavailable ? "Batting quality could not be read" : "No stored batting quality; batting position is used as the fallback"}
+          >
+            —
+          </span>
+        )}
       </td>
       <td className="hide-sm mono small muted event-id">
         {rating?.updatedByEventId || "—"}
@@ -194,6 +217,7 @@ export default function Squads({ info, rating }: Props) {
   const [sort, setSort] = useState<SortKey>("order");
   const ratings = rating.data?.ratings;
   const players = ratings?.players ?? {};
+  const qualities = rating.data?.battingQualities;
   const changed = useChangedPlayers(ratings?.players);
   const match = info.data?.matchInfo;
 
@@ -233,8 +257,8 @@ export default function Squads({ info, rating }: Props) {
         </div>
       ) : (
         <div className="squad-grid">
-          {match.team1 && <TeamSquad team={match.team1} players={players} changed={changed} sort={sort} />}
-          {match.team2 && <TeamSquad team={match.team2} players={players} changed={changed} sort={sort} />}
+          {match.team1 && <TeamSquad team={match.team1} players={players} qualities={qualities} changed={changed} sort={sort} />}
+          {match.team2 && <TeamSquad team={match.team2} players={players} qualities={qualities} changed={changed} sort={sort} />}
         </div>
       )}
     </section>
