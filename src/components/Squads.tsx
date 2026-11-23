@@ -9,6 +9,10 @@ type SortKey = "order" | "rating";
 interface Props {
   info: Source<InfoResponse>;
   rating: Source<RatingStateResponse | null>;
+  activeAction: "postscore" | "match-header" | null;
+  actionError: string | undefined;
+  onRefreshTillNow: () => Promise<void>;
+  onSetupParAndQuality: () => Promise<void>;
 }
 
 function formatTime(iso?: string) {
@@ -190,7 +194,7 @@ function PlayerRow({ player, rating, flash }: { player: InfoPlayer; rating?: Pla
   );
 }
 
-export default function Squads({ info, rating }: Props) {
+export default function Squads({ info, rating, activeAction, actionError, onRefreshTillNow, onSetupParAndQuality }: Props) {
   const [sort, setSort] = useState<SortKey>("order");
   const ratings = rating.data?.ratings;
   const players = ratings?.players ?? {};
@@ -203,6 +207,12 @@ export default function Squads({ info, rating }: Props) {
         <h2 id="squads-heading">Playing XI &amp; ratings</h2>
         <div className="card-actions">
           {ratings && <span className="muted small">Calculated {formatTime(ratings.calculatedAt)}</span>}
+          <button className="btn btn-sm" type="button" onClick={onSetupParAndQuality} disabled={activeAction !== null}>
+            {activeAction === "match-header" ? "Setting up…" : "Setup PAR and Quality"}
+          </button>
+          <button className="btn btn-sm" type="button" onClick={onRefreshTillNow} disabled={activeAction !== null}>
+            {activeAction === "postscore" ? "Refreshing…" : "Refresh till now"}
+          </button>
           <div className="segmented" role="group" aria-label="Sort players">
             <button
               type="button"
@@ -223,6 +233,7 @@ export default function Squads({ info, rating }: Props) {
           </div>
         </div>
       </div>
+      {actionError && <div className="source-error" role="alert">{actionError}</div>}
       <SourceError error={info.error} hasData={Boolean(info.data)} />
       {!ratings && rating.data !== undefined && (
         <p className="muted small">No player ratings yet. They appear after the first over-break.</p>

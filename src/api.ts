@@ -22,6 +22,28 @@ export const fetchInfo = (matchId: number, signal: AbortSignal) =>
 export const fetchLivescore = (matchId: number, signal: AbortSignal) =>
   getJSON<LivescoreResponse>(`/m/mcenter/v1/${matchId}/livescore`, signal);
 
+export async function postScoringUpdate(
+  matchId: number,
+  signal: AbortSignal,
+  task: "postscore" | "match-header" = "postscore",
+): Promise<void> {
+  const path = "/b/matches/v1/scoring-updates";
+  const response = await fetch(`${BASE}${path}`, {
+    method: "POST",
+    signal,
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({
+      task,
+      matchId: String(matchId),
+      inningsId: "0",
+      overNbr: "0",
+      state: task === "match-header" ? "preview" : "inprogress",
+      timestamp: "0",
+    }),
+  });
+  if (!response.ok) throw new HttpError(response.status, path);
+}
+
 // 404 means the match has no PAR or ratings yet, which is a normal state before match-setup.
 export async function fetchRatingState(matchId: number, signal: AbortSignal): Promise<RatingStateResponse | null> {
   try {

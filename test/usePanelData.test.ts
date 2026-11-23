@@ -65,6 +65,10 @@ const defaultHandler: FetchHandler = (id: number) => ({
 let currentHandler: FetchHandler = defaultHandler;
 
 let fetchDelayMs = 0;
+let postHandler: (id: number, signal: AbortSignal, task: string) => Promise<void> = async () => {};
+
+(globalThis as unknown as { __mockApiPost: (id: number, signal: AbortSignal, task: string) => Promise<void> }).__mockApiPost =
+  (id, signal, task) => postHandler(id, signal, task);
 
 (globalThis as unknown as { __mockApiFetch: (endpoint: string, id: number, signal?: AbortSignal) => Promise<unknown> }).__mockApiFetch =
   async (endpoint: string, id: number, signal?: AbortSignal) => {
@@ -99,6 +103,7 @@ const mockApiUrl =
   export const fetchInfo = (id, signal) => globalThis.__mockApiFetch("info", id, signal);
   export const fetchLivescore = (id, signal) => globalThis.__mockApiFetch("live", id, signal);
   export const fetchRatingState = (id, signal) => globalThis.__mockApiFetch("rating", id, signal);
+  export const postScoringUpdate = (id, signal, task) => globalThis.__mockApiPost(id, signal, task);
 `);
 
 registerHooks({
@@ -158,6 +163,7 @@ function createHarness(t: TestContext) {
     await unmount();
     currentHandler = defaultHandler;
     fetchDelayMs = 0;
+    postHandler = async () => {};
   });
 
   const update = async (props: HarnessProps) => {
@@ -316,4 +322,76 @@ test("Reset occurs ONLY when matchId changes", async (t) => {
   assert.equal(harness.latest.rating.data, undefined, "rating data reset to undefined");
   assert.equal(harness.latest.lastUpdated, undefined, "lastUpdated reset to undefined");
   assert.equal(harness.latest.loading, false, "loading is false when matchId is undefined");
+});
+
+test("Refresh till now posts once and reloads ratings for the selected match", async (t) => {
+  const harness = createHarness(t);
+  let postedMatchId: number | undefined;
+  let postedTask: string | undefined;
+  let posts = 0;
+  let refreshed = false;
+  currentHandler = (id) => ({
+    ...defaultHandler(id),
+    rating: { matchId: id, ratings: { players: refreshed ? { 7: { rating: 7 } } : {} } },
+  });
+  postHandler = async (id, _signal, task) => {
+    postedMatchId = id;
+    postedTask = task;
+    posts++;
+    refreshed = true;
+  };
+
+  await harness.update({ matchId: 151338, paused: false });
+  await harness.wait(10);
+  await act(async () => {
+    await harness.latest.refreshTillNow();
+  });
+
+  assert.equal(postedMatchId, 151338);
+  assert.equal(postedTask, "postscore");
+  assert.equal(posts, 1);
+  assert.deepEqual((harness.latest.rating.data as { ratings: { players: Record<string, unknown> } }).ratings.players, { 7: { rating: 7 } });
+  assert.equal(harness.latest.activeAction, null);
+  assert.equal(harness.latest.actionError, undefined);
+});
+
+test("Refresh till now reports a failed POST and preserves ratings", async (t) => {
+  const harness = createHarness(t);
+  await harness.update({ matchId: 151338, paused: false });
+  await harness.wait(10);
+  const before = harness.latest.rating.data;
+  postHandler = async () => { throw new Error("POST failed"); };
+
+  await act(async () => {
+    await harness.latest.refreshTillNow();
+  });
+
+  assert.equal(harness.latest.actionError, "Refresh till now failed: POST failed");
+  assert.deepEqual(harness.latest.rating.data, before);
+  assert.equal(harness.latest.activeAction, null);
+});
+
+test("Setup PAR and Quality posts match-header and reloads PAR data", async (t) => {
+  const harness = createHarness(t);
+  let posted: { id: number; task: string } | undefined;
+  let setup = false;
+  currentHandler = (id) => ({
+    ...defaultHandler(id),
+    rating: { matchId: id, par: setup ? { cells: [{ phase: "powerplay" }] } : null, ratings: null },
+  });
+  postHandler = async (id, _signal, task) => {
+    posted = { id, task };
+    setup = true;
+  };
+
+  await harness.update({ matchId: 151338, paused: false });
+  await harness.wait(10);
+  await act(async () => {
+    await harness.latest.setupParAndQuality();
+  });
+
+  assert.deepEqual(posted, { id: 151338, task: "match-header" });
+  assert.deepEqual((harness.latest.rating.data as { par: unknown }).par, { cells: [{ phase: "powerplay" }] });
+  assert.equal(harness.latest.activeAction, null);
+  assert.equal(harness.latest.actionError, undefined);
 });

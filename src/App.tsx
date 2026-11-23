@@ -59,7 +59,14 @@ export default function App() {
         <main className="grid" id="main-content">
           <Scorecard live={data.live} info={data.info.data} />
           <ParTable rating={data.rating} />
-          <Squads info={data.info} rating={data.rating} />
+          <Squads
+            info={data.info}
+            rating={data.rating}
+            activeAction={data.activeAction}
+            actionError={data.actionError}
+            onRefreshTillNow={data.refreshTillNow}
+            onSetupParAndQuality={data.setupParAndQuality}
+          />
         </main>
       )}
     </div>
