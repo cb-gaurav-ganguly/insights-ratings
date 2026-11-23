@@ -34,7 +34,10 @@ export default function App() {
     <div className="app">
       <Header
         matchId={matchId}
-        onMatchId={setMatchId}
+        onMatchId={(next) => {
+          setMatchId(next);
+          setPaused(false);
+        }}
         paused={paused}
         onTogglePause={() => setPaused((p) => !p)}
         lastUpdated={data.lastUpdated}
@@ -43,13 +46,17 @@ export default function App() {
       />
       {matchId === undefined ? (
         <div className="empty-state card">
+          <div className="empty-state-icon" aria-hidden="true">🏏</div>
           <h2>Enter a match ID to start</h2>
-          <p>The panel refreshes the live score, PAR table and player ratings every 5 seconds.</p>
+          <p>The panel tracks live ball-by-ball score, PAR benchmark rates, and real-time player ratings.</p>
         </div>
       ) : data.loading ? (
-        <div className="empty-state card"><div className="spinner" /> Loading match {matchId}…</div>
+        <div className="empty-state card" role="status" aria-live="polite">
+          <div className="spinner" aria-hidden="true" />
+          <p className="loading-text">Loading match {matchId}…</p>
+        </div>
       ) : (
-        <main className="grid">
+        <main className="grid" id="main-content">
           <Scorecard live={data.live} info={data.info.data} />
           <ParTable rating={data.rating} />
           <Squads info={data.info} rating={data.rating} />

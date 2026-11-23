@@ -25,7 +25,7 @@ export const fetchLivescore = (matchId: number, signal: AbortSignal) =>
 // 404 means the match has no PAR or ratings yet, which is a normal state before match-setup.
 export async function fetchRatingState(matchId: number, signal: AbortSignal): Promise<RatingStateResponse | null> {
   try {
-    return await getJSON<RatingStateResponse>(`/insights/v1/player-ratings?matchId=${matchId}`, signal);
+    return await getJSON<RatingStateResponse>(`/b/insights/v1/player-ratings?matchId=${matchId}`, signal);
   } catch (error) {
     if (error instanceof HttpError && error.status === 404) return null;
     throw error;

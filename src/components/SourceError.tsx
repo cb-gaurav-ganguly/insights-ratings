@@ -1,4 +1,13 @@
-export function SourceError({ error }: { error: string | undefined }) {
+export function SourceError({ error, hasData }: { error: string | undefined; hasData?: boolean }) {
   if (!error) return null;
-  return <div className="source-error">Refresh failed: {error}. Showing the last good data.</div>;
+  return (
+    <div className="source-error" role="alert">
+      <span className="source-error-icon" aria-hidden="true">⚠️</span>
+      <span>
+        {hasData
+          ? `Refresh failed: ${error}. Preserving last good data.`
+          : `Failed to load: ${error}.`}
+      </span>
+    </div>
+  );
 }

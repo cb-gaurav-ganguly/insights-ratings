@@ -101,7 +101,7 @@ export interface LivescoreResponse {
   };
 }
 
-// insights-emerald GET /insights/v1/player-ratings?matchId=
+// insights-emerald GET /b/insights/v1/player-ratings?matchId=
 export interface PARCell {
   innings: number;
   phase: "powerplay" | "middle" | "death" | string;

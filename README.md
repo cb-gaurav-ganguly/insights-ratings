@@ -3,7 +3,7 @@
 A live panel for one match. Every 5 seconds it shows:
 
 - **Mini scorecard**: innings scores, status, current batters and bowlers, run rates, recent balls and latest commentary. Source: `GET /m/mcenter/v1/{matchId}/livescore`.
-- **PAR table**: the six PAR cells (innings × powerplay/middle/death), showing par strike rate, runs per over, balls per wicket and source level. Source: insights-emerald `GET /insights/v1/player-ratings?matchId=`.
+- **PAR table**: the six PAR cells (innings × powerplay/middle/death), showing par strike rate, runs per over, balls per wicket and source level. Source: insights-emerald `GET /b/insights/v1/player-ratings?matchId={matchId}`.
 - **Playing XI and ratings**: both squads from `GET /m/mcenter/v1/{matchId}/info`, joined with each player's rating, components, batting quality and `updatedByEventId`. A row briefly highlights when its `updatedByEventId` changes.
 
 ## Run
