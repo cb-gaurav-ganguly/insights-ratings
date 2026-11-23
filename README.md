@@ -24,7 +24,7 @@ VITE_API_BASE=https://example.internal npm run build
 
 - Polls start only after the previous refresh finishes. Hiding the page cancels in-flight polls and stops the timer; returning starts them again immediately. **Pause** stops polling.
 - **Refresh till now** sends a `match-complete` event to `POST /b/insights/v1/autoevent` with `matchState: inprogress`, then reloads player ratings. The recalculation runs in the background; subsequent polls show its result.
-- **Setup PAR and Quality** sends a `match-header` update to `POST /b/matches/v1/scoring-updates` with `state: preview`, then reloads PAR and ratings data.
+- **Setup PAR and Quality** sends a `match-setup` event to `POST /b/insights/v1/autoevent` for the selected match. Setup runs in the background; subsequent polls show the PAR and quality data.
 - If one endpoint fails, the panel keeps that endpoint's last good data, shows a warning, and keeps polling.
 - A `404` from the ratings endpoint means match-setup has not prepared PAR yet. The panel shows this as an empty state.
 - PAR rates are derived the same way as `matchperformance.DerivePAR` in insights-emerald.

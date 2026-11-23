@@ -105,8 +105,7 @@ const mockApiUrl =
   export const fetchInfo = (id, signal) => globalThis.__mockApiFetch("info", id, signal);
   export const fetchLivescore = (id, signal) => globalThis.__mockApiFetch("live", id, signal);
   export const fetchRatingState = (id, signal) => globalThis.__mockApiFetch("rating", id, signal);
-  export const postScoringUpdate = (id, signal) => globalThis.__mockApiPost(id, signal, "match-header");
-  export const postAutoEvent = (id, signal) => globalThis.__mockApiPost(id, signal, "match-complete");
+  export const postAutoEvent = (id, signal, task) => globalThis.__mockApiPost(id, signal, task);
 `);
 
 registerHooks({
@@ -409,7 +408,7 @@ test("Refresh till now reports a failed POST and preserves ratings", async (t) =
   assert.equal(harness.latest.activeAction, null);
 });
 
-test("Setup PAR and Quality posts match-header and reloads PAR data", async (t) => {
+test("Setup PAR and Quality posts match-setup and reloads PAR data", async (t) => {
   const harness = createHarness(t);
   let posted: { id: number; task: string } | undefined;
   let setup = false;
@@ -428,7 +427,7 @@ test("Setup PAR and Quality posts match-header and reloads PAR data", async (t) 
     await harness.latest.setupParAndQuality();
   });
 
-  assert.deepEqual(posted, { id: 151338, task: "match-header" });
+  assert.deepEqual(posted, { id: 151338, task: "match-setup" });
   assert.deepEqual((harness.latest.rating.data as { par: unknown }).par, { cells: [{ phase: "powerplay" }] });
   assert.equal(harness.latest.activeAction, null);
   assert.equal(harness.latest.actionError, undefined);

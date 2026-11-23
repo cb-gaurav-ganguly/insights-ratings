@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { fetchInfo, fetchLivescore, fetchRatingState, postAutoEvent, postScoringUpdate } from "./api";
+import { fetchInfo, fetchLivescore, fetchRatingState, postAutoEvent } from "./api";
 import { createPoller, REFRESH_MS } from "./poller";
 export { REFRESH_MS } from "./poller";
 import type { InfoResponse, LivescoreResponse, RatingStateResponse } from "./types";
@@ -18,7 +18,7 @@ interface PanelState {
 }
 
 export interface PanelData extends PanelState {
-  activeAction: "match-complete" | "match-header" | null;
+  activeAction: "match-complete" | "match-setup" | null;
   actionError: string | undefined;
   refreshTillNow: () => Promise<void>;
   setupParAndQuality: () => Promise<void>;
@@ -33,7 +33,7 @@ function settle<T>(previous: Source<T>, result: PromiseSettledResult<T>): Source
 }
 
 export function usePanelData(matchId: number | undefined, paused: boolean): PanelData {
-  const [activeAction, setActiveAction] = useState<"match-complete" | "match-header" | null>(null);
+  const [activeAction, setActiveAction] = useState<"match-complete" | "match-setup" | null>(null);
   const [actionError, setActionError] = useState<string>();
   const refreshController = useRef<AbortController | null>(null);
   const ratingEpoch = useRef(0);
@@ -65,7 +65,7 @@ export function usePanelData(matchId: number | undefined, paused: boolean): Pane
 
   useEffect(() => () => refreshController.current?.abort(), []);
 
-  const runRatingAction = async (task: "match-complete" | "match-header") => {
+  const runRatingAction = async (task: "match-complete" | "match-setup") => {
     const id = activeMatchIdRef.current;
     if (id === undefined || refreshController.current) return;
     const controller = new AbortController();
@@ -74,8 +74,7 @@ export function usePanelData(matchId: number | undefined, paused: boolean): Pane
     setActiveAction(task);
     setActionError(undefined);
     try {
-      if (task === "match-complete") await postAutoEvent(id, controller.signal);
-      else await postScoringUpdate(id, controller.signal);
+      await postAutoEvent(id, controller.signal, task);
       const rating = await fetchRatingState(id, controller.signal);
       if (!controller.signal.aborted && activeMatchIdRef.current === id) {
         setState((previous) => ({ ...previous, rating: { data: rating, error: undefined } }));
@@ -159,6 +158,6 @@ export function usePanelData(matchId: number | undefined, paused: boolean): Pane
     activeAction,
     actionError,
     refreshTillNow: () => runRatingAction("match-complete"),
-    setupParAndQuality: () => runRatingAction("match-header"),
+    setupParAndQuality: () => runRatingAction("match-setup"),
   };
 }

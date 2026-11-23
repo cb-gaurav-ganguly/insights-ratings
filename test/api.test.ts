@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { postAutoEvent, postScoringUpdate } from "../src/api.ts";
+import { postAutoEvent } from "../src/api.ts";
 
 test("Refresh till now sends the match-complete autoevent envelope", async () => {
   const originalFetch = globalThis.fetch;
@@ -11,7 +11,7 @@ test("Refresh till now sends the match-complete autoevent envelope", async () =>
   };
   try {
     const before = Date.now();
-    await postAutoEvent(151338, new AbortController().signal);
+    await postAutoEvent(151338, new AbortController().signal, "match-complete");
     const after = Date.now();
     assert.equal(request?.url, "/cb/b/insights/v1/autoevent");
     assert.equal(request?.init.method, "POST");
@@ -30,7 +30,7 @@ test("Refresh till now sends the match-complete autoevent envelope", async () =>
   }
 });
 
-test("Setup PAR and Quality keeps its scoring-updates request", async () => {
+test("Setup PAR and Quality sends a match-setup autoevent for the selected match", async () => {
   const originalFetch = globalThis.fetch;
   let request: { url: string; init: RequestInit } | undefined;
   globalThis.fetch = async (url, init) => {
@@ -38,17 +38,18 @@ test("Setup PAR and Quality keeps its scoring-updates request", async () => {
     return { ok: true } as Response;
   };
   try {
-    await postScoringUpdate(151338, new AbortController().signal);
-    assert.equal(request?.url, "/cb/b/matches/v1/scoring-updates");
+    const before = Date.now();
+    await postAutoEvent(151338, new AbortController().signal, "match-setup");
+    const after = Date.now();
+    assert.equal(request?.url, "/cb/b/insights/v1/autoevent");
     assert.equal(request?.init.method, "POST");
-    assert.deepEqual(JSON.parse(String(request?.init.body)), {
-      task: "match-header",
-      matchId: "151338",
-      inningsId: "0",
-      overNbr: "0",
-      state: "preview",
-      timestamp: "0",
+    const { eventTime, ...payload } = JSON.parse(String(request?.init.body));
+    assert.deepEqual(payload, {
+      eventType: "match-setup",
+      eventId: "match-setup:151338",
+      matchId: 151338,
     });
+    assert.ok(eventTime >= before && eventTime <= after);
   } finally {
     globalThis.fetch = originalFetch;
   }

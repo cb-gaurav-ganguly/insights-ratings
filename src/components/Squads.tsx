@@ -9,7 +9,7 @@ type SortKey = "order" | "rating";
 interface Props {
   info: Source<InfoResponse>;
   rating: Source<RatingStateResponse | null>;
-  activeAction: "match-complete" | "match-header" | null;
+  activeAction: "match-complete" | "match-setup" | null;
   actionError: string | undefined;
   onRefreshTillNow: () => Promise<void>;
   onSetupParAndQuality: () => Promise<void>;
@@ -232,7 +232,7 @@ export default function Squads({ info, rating, activeAction, actionError, onRefr
         <div className="card-actions">
           {ratings && <span className="muted small">Calculated {formatTime(ratings.calculatedAt)}</span>}
           <button className="btn btn-sm" type="button" onClick={onSetupParAndQuality} disabled={activeAction !== null}>
-            {activeAction === "match-header" ? "Setting up…" : "Setup PAR and Quality"}
+            {activeAction === "match-setup" ? "Setting up…" : "Setup PAR and Quality"}
           </button>
           <button className="btn btn-sm" type="button" onClick={onRefreshTillNow} disabled={activeAction !== null}>
             {activeAction === "match-complete" ? "Refreshing…" : "Refresh till now"}

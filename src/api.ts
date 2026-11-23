@@ -35,23 +35,17 @@ export const fetchInfo = (matchId: number, signal: AbortSignal) =>
 export const fetchLivescore = (matchId: number, signal: AbortSignal) =>
   getJSON<LivescoreResponse>(`/m/mcenter/v1/${matchId}/livescore`, signal);
 
-export const postScoringUpdate = (matchId: number, signal: AbortSignal) =>
-  postJSON("/b/matches/v1/scoring-updates", {
-    task: "match-header",
-    matchId: String(matchId),
-    inningsId: "0",
-    overNbr: "0",
-    state: "preview",
-    timestamp: "0",
-  }, signal);
-
-export const postAutoEvent = (matchId: number, signal: AbortSignal) =>
+export const postAutoEvent = (
+  matchId: number,
+  signal: AbortSignal,
+  eventType: "match-complete" | "match-setup",
+) =>
   postJSON("/b/insights/v1/autoevent", {
-    eventType: "match-complete",
-    eventId: `match-complete:${matchId}`,
+    eventType,
+    eventId: `${eventType}:${matchId}`,
     matchId,
     eventTime: Date.now(),
-    data: { matchHeaders: { matchState: "inprogress" } },
+    ...(eventType === "match-complete" ? { data: { matchHeaders: { matchState: "inprogress" } } } : {}),
   }, signal);
 
 // 404 means the match has no PAR or ratings yet, which is a normal state before match-setup.
